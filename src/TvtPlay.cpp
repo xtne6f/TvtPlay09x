@@ -1,5 +1,5 @@
 ﻿// TVTestにtsファイル再生機能を追加するプラグイン
-// 最終更新: 2011-11-10
+// 最終更新: 2011-12-10
 // 署名: 849fa586809b0d16276cd644c6749503
 #include <Windows.h>
 #include <WindowsX.h>
@@ -12,7 +12,7 @@
 #include "resource.h"
 
 static LPCWSTR INFO_PLUGIN_NAME = L"TvtPlay";
-static LPCWSTR INFO_DESCRIPTION = L"ファイル再生機能を追加 (ver.0.9r5)";
+static LPCWSTR INFO_DESCRIPTION = L"ファイル再生機能を追加 (ver.0.9r6)";
 
 #define WM_UPDATE_POSITION  (WM_APP + 1)
 #define WM_UPDATE_TOT_TIME  (WM_APP + 2)
@@ -1307,7 +1307,7 @@ DWORD WINAPI CTvtPlay::TsSenderThread(LPVOID pParam)
             fPrevFixed = fFixed;
         }
         // 放送時刻情報の更新を伝える
-        if (totSec != tot) {
+        if (totSec != tot / 1000) {
             ::PostMessage(pThis->m_hwndFrame, WM_UPDATE_TOT_TIME, 0, tot);
             totSec = tot / 1000;
         }

@@ -563,12 +563,12 @@ void CTsSender::ConsumeBuffer(bool fSend)
             if (!m_sock) OpenSocket();
             if (m_sock) {
                 // UDP転送
-                struct sockaddr_in addr;
+                sockaddr_in addr = {0};
                 addr.sin_family = AF_INET;
                 addr.sin_port = htons(m_udpPort);
                 addr.sin_addr.S_un.S_addr = inet_addr(m_udpAddr);
                 if (::sendto(m_sock, (const char*)m_pBuf, (int)(m_curr - m_pBuf),
-                             0, (struct sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR)
+                             0, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR)
                 {
                     CloseSocket();
                 }

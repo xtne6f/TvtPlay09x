@@ -1,4 +1,4 @@
-﻿TVTest TvtPlay Plugin ver.0.9r5 + BonDriver_Pipe.dll + TvtAudioStretchFilter.ax
+﻿TVTest TvtPlay Plugin ver.0.9r6 + BonDriver_Pipe.dll + TvtAudioStretchFilter.ax
 
 ■概要
 TVTest付属のBonDriver_UDPまたは専用のBonDriver_Pipeを使ってローカルTSファイルを
@@ -11,13 +11,7 @@ TVTest付属のBonDriver_UDPまたは専用のBonDriver_Pipeを使ってロー�
 ・x64版:  Visual C++ 2010 SP1 再頒布可能パッケージ (x64)
           # ↑ver.0.9以降、x64版はSP1の方をインストールする必要があるので注意
 
-■ver.0.9r3、ver.0.9r4からの移行
-・TvtPlay.tvtpを置きかえてください。
-
-■ver.0.9、ver.0.9r2からの移行
-・TvtPlay.tvtpとTvtAudioStretchFilter.axを置きかえてください。
-
-■以前のバージョン(～ver.0.8r2)からの移行
+■以前のバージョンからの移行
 ・TvtPlay.tvtpとBonDriver_Pipe.dllとTvtAudioStretchFilter.axとを置きかえてくださ
   い。設定ファイルはそのまま引き継げます。
 ・ver.0.9ではBonDriver_Pipe.dllに倍速再生に関する修正があります。必ず置き換えて
@@ -283,6 +277,12 @@ http://2sen.dip.jp/)のup0598.zip「非公式 TvtPlayシークボタンカスタ
 その他の部分は勝手に改変・利用してもらって構いません。
 
 ■更新履歴
+ver.0.9r6 (2011-12-10)
+・メッセージポスト部分の微バグ修正(送り過ぎてた)
+・BonDriver_Pipeの以下の不具合修正
+  ・ドライバの初期化と再生開始のタイミングが重なった場合に、TVTestをフリーズさせ
+    てしまうことがある
+・TvtAudioStretchFilterを5.1ch対応にした
 ver.0.9r5 (2011-11-10)
 ・複数起動禁止での起動時に1番目のコマンドオプションが無視される不具合を修正
 ver.0.9r4 (2011-11-09)
