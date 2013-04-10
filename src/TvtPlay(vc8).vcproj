@@ -61,7 +61,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="/PDBALTPATH:%_PDB%"
+				AdditionalOptions="/PDBALTPATH:%_PDB% /OPT:NOWIN98"
 				AdditionalDependencies="ws2_32.lib Shlwapi.lib"
 				OutputFile="$(OutDir)\$(ProjectName).tvtp"
 				LinkIncremental="2"
@@ -140,7 +140,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="/PDBALTPATH:%_PDB%"
+				AdditionalOptions="/PDBALTPATH:%_PDB% /OPT:NOWIN98"
 				AdditionalDependencies="ws2_32.lib Shlwapi.lib"
 				OutputFile="$(OutDir)\$(ProjectName).tvtp"
 				LinkIncremental="1"

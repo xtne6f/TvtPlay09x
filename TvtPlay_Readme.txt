@@ -1,4 +1,4 @@
-﻿TVTest TvtPlay Plugin ver.0.9r6 + BonDriver_Pipe.dll + TvtAudioStretchFilter.ax
+﻿TVTest TvtPlay Plugin ver.0.9r7 + BonDriver_Pipe.dll + TvtAudioStretchFilter.ax
 
 ■概要
 TVTest付属のBonDriver_UDPまたは専用のBonDriver_Pipeを使ってローカルTSファイルを
@@ -12,16 +12,15 @@ TVTest付属のBonDriver_UDPまたは専用のBonDriver_Pipeを使ってロー�
           # ↑ver.0.9以降、x64版はSP1の方をインストールする必要があるので注意
 
 ■以前のバージョンからの移行
-・TvtPlay.tvtpとBonDriver_Pipe.dllとTvtAudioStretchFilter.axとを置きかえてくださ
-  い。設定ファイルはそのまま引き継げます。
-・ver.0.9ではBonDriver_Pipe.dllに倍速再生に関する修正があります。必ず置き換えて
-  ください。
-・ver.0.9r3ではTvtAudioStretchFilter.axに変更があります(後述の「
-  TvtAudioStretchFilterの追加機能」を参照)。必要ならば置き換えてください。
-・ver.0.9ではデフォルトのアイコンデザインが一部変わりました。設定キーのButton04
-  ～Button15を一度削除すると新しいデザインになります。
-・ver.0.8では倍速再生ボタン2個が追加されました。アイコン画像をカスタマイズしてい
-  る方は画像の編集が必要になるかもしれません。
+設定ファイルTvtPlay.iniは基本的にそのまま引き継げます。ただし、ボタンのアイコン
+用画像の配置転換などで、設定キーButton04～Button15のデフォルトが一部変更されてい
+ます。ボタンアイコンがおかしくなった場合は、一度これらのキーをメモ帳などを使って
+削除してみてください。
+(ver.0.9r6からの移行)
+  TvtPlay.tvtpを置きかえてください。
+(ver.0.9r5以前からの移行)
+  TvtPlay.tvtpとBonDriver_Pipe.dllとTvtAudioStretchFilter.axとを置きかえてくださ
+  い。
 
 ■使い方
 TVTestのPluginsフォルダにTvtPlay.tvtpを入れてください。BonDriver_Pipe.dllは使用
@@ -85,8 +84,10 @@ TVTest起動時につぎのようなオプションを追加することで、�
 TVTestの音声フィルタを一つしか指定できないことへの対策として、ver.0.9r3以降に添
 付のTvtAudioStretchFilterでは、接続するDirectShowフィルタを1つだけ指定できるよう
 になりました。たとえば、フィルタを置いたフォルダに"TvtAudioStretchFilter.ini"を
-次のような内容で作成すると、(ffdshowがインストールされていれば)このフィルタの後
-続にffdshow Audio Decoderが接続されます。
+次のような内容で作成すると、ffdshowがインストールされていて、"Uncompressed"形式
+が有効に設定されていれば、フィルタの後続にffdshow Audio Decoderが接続されます。
+ver.0.9r6以降に添付のフィルタは5.1ch音声に対応しています。S/PDIFパススルーには未
+対応なので注意してください。
 
 [TvtAudioStretchFilter]
 AddFilter={0F40E1E5-4F79-4988-B1A9-CC98794E6B55}
@@ -94,10 +95,6 @@ AddFilter={0F40E1E5-4F79-4988-B1A9-CC98794E6B55}
 (エラーメッセージ)
   「追加のフィルタを生成できません。」
   AddFilterに指定したDirectShowフィルタが見つからなかったときに表示されます。
-  
-  「追加のフィルタを接続できません。」
-  おもにフィルタの入出力ピンがPCM形式をサポートしていない(たとえばffdshow Audio
-  Decoderの設定で"Uncompressed"形式を有効にしていないなど)ときに表示されます。
 
 (上級者向け)
   一般に1入力1出力のPCM音声フィルタであれば(おそらく)何でも追加できます。
@@ -147,6 +144,11 @@ TsStretchNoMuteMax / TsStretchNoMuteMin【ver.0.8～】
     倍速再生の速度が設定値以上/以下なら無音にする
 TsConvTo188【ver.0.9～】
     192ByteTS(Timestamped TS)の場合、188ByteTSに変換して転送する[=1]かどうか
+TsUsePerfCounter【ver.0.9r7～】
+    パフォーマンスカウンタをTSデータ送出タイミングの基準とする[=1]かどうか
+    # 基本的に[=1]で良いと思います。
+    # 再生に不具合があれば[=0]にしてみてください。ver.0.9r6以前の動作に戻ります
+    # 詳細は後述の「設定キーTsUsePerfCounterについて(上級者向け)」を参照。
 ToBottom
     フルスクリーン時、コントロールの位置を画面のもっとも下に置く[=1]かどうか
 Margin【ver.0.6～】
@@ -231,6 +233,23 @@ Button[00-15]
 挙動が気持ちわるいひとはTsResetAllOnSeekを1にするかTsResetDropIntervalを大きめの
 値(2000～4000程度)にしてみてください。
 
+■設定キーTsUsePerfCounterについて(上級者向け)
+一部の環境で GetTickCount と QueryPerformanceCounter の2つのAPIの計時結果(瞬間的
+なものではなく数分～数時間単位でのもの)にずれが生じるようです(ウチの環境がそうで
+したorz)。TvtPlayはTSデータをPCR(Program Clock Reference)の示すクロックに同期さ
+せてTVTestに送るので、計時結果のずれが大きくなると音声が途切れとぎれになったりす
+る可能性があります。
+当該設定キーの設定値を変更すると、TvtPlayが基準にするAPIを、[=0]なら従来通りの
+GetTickCount、[=1]ならQueryPerformanceCounterにします。どちらでも負荷は基本的に
+同じです。DirectshowのレンダラはQueryPerformanceCounterを基準としているはずなの
+で、ほとんどの環境で[=1]が適切だと思います。
+
+興味のある方は、src.zipの中にある_qpc_test.exeで2つのAPIの計時結果を比較してみて
+ください。当方環境では、PC負荷が変動(可変クロックCPUのクロック値が頻繁に変化)す
+るような状況でずれが大きく(数分間で1000msecオーダー)なりました。このような環境の
+PCでは、たとえば時計が一日に数秒～数分単位で遅れるor進む、アナログチューナの音声
+と映像のずれが次第に激しくなる、といった現象もみられるかもしれません。
+
 ■仕様
 ・TVTest ver.0.7.20以前では、シーク後に音無しor映像無しになることがあります。当
   方ではシーク200回のうち7回発生しました。発生したときはビューアリセットしたりも
@@ -277,6 +296,12 @@ http://2sen.dip.jp/)のup0598.zip「非公式 TvtPlayシークボタンカスタ
 その他の部分は勝手に改変・利用してもらって構いません。
 
 ■更新履歴
+ver.0.9r7 (2011-12-30)
+・計時APIをQueryPerformanceCounterに変更し、設定キーTsUsePerfCounterを追加(
+  ver.1.x系からのバックポート)
+・ver.1.x系に合わせて読み取り可能なButton[00-15]の最大文字列長を127→191に変更
+・TvtAudioStretchFilterのビルドオプションを改善してリビルド
+  ・/OPT:NOWIN98でサイズを小さくしただけ、置きかえの必要なし
 ver.0.9r6 (2011-12-10)
 ・メッセージポスト部分の微バグ修正(送り過ぎてた)
 ・BonDriver_Pipeの以下の不具合修正
@@ -288,7 +313,7 @@ ver.0.9r5 (2011-11-10)
 ver.0.9r4 (2011-11-09)
 ・「ファイルを開く」ダイアログ使用後にカレントディレクトリが変更されてしまうのを
   修正
-・ver.1.x系に合わせて読み取り可能なButton[00-15]の最大文字列長を64→128に変更
+・ver.1.x系に合わせて読み取り可能なButton[00-15]の最大文字列長を63→127に変更
 ・ver.1.x系に合わせてコンパイルオプション見直しでバイナリサイズ縮小
 ver.0.9r3 (2011-10-20)
 ・TVTest ver.0.7.23でボーダーの配色方法が微妙に変化したので追随

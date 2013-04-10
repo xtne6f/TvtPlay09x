@@ -10,12 +10,14 @@ class CTsSender {
     static const int TS_SUPPOSED_RATE = 2 * 1024 * 1024;
     static const int PCR_PIDS_MAX = 8;
     static const int RESYNC_FAILURE_LIMIT = 5;
+    static const int ADJUST_TICK_INTERVAL = 10000;
     static const int RENEW_SIZE_INTERVAL = 3000;
     static const int INITIAL_STORE_MSEC = 500;
 public:
     CTsSender();
     ~CTsSender();
-    bool Open(LPCTSTR name, DWORD salt);
+    bool Open(LPCTSTR name, DWORD salt, bool fUseQpc);
+    void SetupQpc();
     void SetUdpAddress(LPCSTR addr, unsigned short port);
     void SetPipeName(LPCTSTR name);
     void SetConvTo188(bool fConvTo188);
@@ -38,6 +40,7 @@ public:
     int GetBroadcastTime() const;
     long long GetFileHash() const;
 private:
+    DWORD GetAdjTickCount();
     bool ReadPacket(int count = RESYNC_FAILURE_LIMIT);
     void ConsumeBuffer(bool fSend);
     bool Seek(long long distanceToMove, DWORD dwMoveMethod);
@@ -72,6 +75,9 @@ private:
     DWORD m_initStore;
     bool m_fSpecialExtending;
     int m_specialExtendInitRate;
+    int m_adjState;
+    DWORD m_adjBaseTick, m_adjHoldTick, m_adjAmount, m_adjDelta;
+    LARGE_INTEGER m_liAdjFreq, m_liAdjBase;
 };
 
 #endif // INCLUDE_TS_SENDER_H

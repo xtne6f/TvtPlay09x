@@ -10,6 +10,7 @@
 #define COMMAND_SEEK_MAX        8
 #define COMMAND_STRETCH_MAX     4
 #define BUTTON_MAX              16
+#define BUTTON_TEXT_MAX         192
 
 class CStatusViewEventHandler : public CStatusView::CEventHandler
 {
@@ -50,7 +51,7 @@ class CTvtPlay : public TVTest::CTVTestPlugin
     TCHAR m_szIconFileName[MAX_PATH];
     int m_seekList[COMMAND_SEEK_MAX];
     int m_stretchList[COMMAND_STRETCH_MAX];
-    TCHAR m_buttonList[BUTTON_MAX][128];
+    TCHAR m_buttonList[BUTTON_MAX][BUTTON_TEXT_MAX];
     int m_buttonNum;
     int m_popupMax;
     TCHAR m_szPopupPattern[MAX_PATH];
@@ -70,7 +71,7 @@ class CTvtPlay : public TVTest::CTVTestPlugin
     bool m_fHalt, m_fAutoClose, m_fAutoLoop;
     bool m_fResetAllOnSeek;
     int m_stretchMode, m_noMuteMax, m_noMuteMin;
-    bool m_fConvTo188;
+    bool m_fConvTo188, m_fUseQpc;
 
     // ファイルごとの固有情報
     int m_salt, m_hashListMax;

@@ -1,5 +1,5 @@
 ﻿// TVTestにtsファイル再生機能を追加するプラグイン
-// 最終更新: 2011-12-10
+// 最終更新: 2011-12-30
 // 署名: 849fa586809b0d16276cd644c6749503
 #include <Windows.h>
 #include <WindowsX.h>
@@ -12,7 +12,7 @@
 #include "resource.h"
 
 static LPCWSTR INFO_PLUGIN_NAME = L"TvtPlay";
-static LPCWSTR INFO_DESCRIPTION = L"ファイル再生機能を追加 (ver.0.9r6)";
+static LPCWSTR INFO_DESCRIPTION = L"ファイル再生機能を追加 (ver.0.9r7)";
 
 #define WM_UPDATE_POSITION  (WM_APP + 1)
 #define WM_UPDATE_TOT_TIME  (WM_APP + 2)
@@ -147,6 +147,7 @@ CTvtPlay::CTvtPlay()
     , m_noMuteMax(0)
     , m_noMuteMin(0)
     , m_fConvTo188(false)
+    , m_fUseQpc(false)
     , m_salt(0)
     , m_hashListMax(0)
 {
@@ -252,6 +253,7 @@ void CTvtPlay::LoadSettings()
     m_noMuteMax = ::GetPrivateProfileInt(SETTINGS, TEXT("TsStretchNoMuteMax"), 800, m_szIniFileName);
     m_noMuteMin = ::GetPrivateProfileInt(SETTINGS, TEXT("TsStretchNoMuteMin"), 50, m_szIniFileName);
     m_fConvTo188 = ::GetPrivateProfileInt(SETTINGS, TEXT("TsConvTo188"), 1, m_szIniFileName) != 0;
+    m_fUseQpc = ::GetPrivateProfileInt(SETTINGS, TEXT("TsUsePerfCounter"), 1, m_szIniFileName) != 0;
     m_fToBottom = ::GetPrivateProfileInt(SETTINGS, TEXT("ToBottom"), 1, m_szIniFileName) != 0;
     m_statusMargin = ::GetPrivateProfileInt(SETTINGS, TEXT("Margin"), defMargin, m_szIniFileName);
     m_fSeekDrawTot = ::GetPrivateProfileInt(SETTINGS, TEXT("DispTot"), 0, m_szIniFileName) != 0;
@@ -329,7 +331,7 @@ void CTvtPlay::LoadSettings()
     m_fSettingsLoaded = true;
 
     // デフォルトの設定キーを出力するため
-    if (::GetPrivateProfileInt(SETTINGS, TEXT("PopupDesc"), -1, m_szIniFileName) == -1)
+    if (::GetPrivateProfileInt(SETTINGS, TEXT("TsUsePerfCounter"), -1, m_szIniFileName) == -1)
         SaveSettings();
 
     CColorScheme scheme;
@@ -389,6 +391,7 @@ void CTvtPlay::SaveSettings() const
     WritePrivateProfileInt(SETTINGS, TEXT("TsStretchNoMuteMax"), m_noMuteMax, m_szIniFileName);
     WritePrivateProfileInt(SETTINGS, TEXT("TsStretchNoMuteMin"), m_noMuteMin, m_szIniFileName);
     WritePrivateProfileInt(SETTINGS, TEXT("TsConvTo188"), m_fConvTo188, m_szIniFileName);
+    WritePrivateProfileInt(SETTINGS, TEXT("TsUsePerfCounter"), m_fUseQpc, m_szIniFileName);
     WritePrivateProfileInt(SETTINGS, TEXT("ToBottom"), m_fToBottom, m_szIniFileName);
     WritePrivateProfileInt(SETTINGS, TEXT("Margin"), m_statusMargin, m_szIniFileName);
     WritePrivateProfileInt(SETTINGS, TEXT("DispTot"), m_fSeekDrawTot, m_szIniFileName);
@@ -659,7 +662,7 @@ bool CTvtPlay::Open(LPCTSTR fileName)
 {
     Close();
 
-    if (!m_tsSender.Open(fileName, m_salt)) return false;
+    if (!m_tsSender.Open(fileName, m_salt, m_fUseQpc)) return false;
 
     // レジューム情報があればその地点までシーク
     LONGLONG hash = m_tsSender.GetFileHash();
@@ -1188,6 +1191,8 @@ DWORD WINAPI CTvtPlay::TsSenderThread(LPVOID pParam)
     bool fPrevFixed = false;
     int resetCount = 5;
 
+    pThis->m_tsSender.SetupQpc();
+
     // コントロールの表示をリセット
     pThis->m_tsSender.Pause(false);
     ::PostMessage(pThis->m_hwndFrame, WM_UPDATE_F_PAUSED, 0, 0);
@@ -1470,7 +1475,6 @@ void CSeekStatusItem::OnLButtonDown(int x, int y)
         m_pPlugin->SeekToEnd();
     }
     else {
-        GetClientRect(&rc);
         int pos = m_pPlugin->GetPosition();
         int dur = m_pPlugin->GetDuration();
         int targetPos = (int)((long long)(x-4-2) * dur / ((rc.right-2) - (rc.left+2)));
