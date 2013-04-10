@@ -1,5 +1,5 @@
 ﻿// TVTestにtsファイル再生機能を追加するプラグイン
-// 最終更新: 2011-11-09
+// 最終更新: 2011-11-10
 // 署名: 849fa586809b0d16276cd644c6749503
 #include <Windows.h>
 #include <WindowsX.h>
@@ -12,7 +12,7 @@
 #include "resource.h"
 
 static LPCWSTR INFO_PLUGIN_NAME = L"TvtPlay";
-static LPCWSTR INFO_DESCRIPTION = L"ファイル再生機能を追加 (ver.0.9r4)";
+static LPCWSTR INFO_DESCRIPTION = L"ファイル再生機能を追加 (ver.0.9r5)";
 
 #define WM_UPDATE_POSITION  (WM_APP + 1)
 #define WM_UPDATE_TOT_TIME  (WM_APP + 2)
@@ -171,14 +171,14 @@ bool CTvtPlay::GetPluginInfo(TVTest::PluginInfo *pInfo)
 }
 
 
-void CTvtPlay::AnalyzeCommandLine(LPCWSTR cmdLine)
+void CTvtPlay::AnalyzeCommandLine(LPCWSTR cmdLine, bool fIgnoreFirst)
 {
     m_szSpecFileName[0] = 0;
 
     int argc;
     LPTSTR *argv = ::CommandLineToArgvW(cmdLine, &argc);
     if (argv) {
-        for (int i = 1; i < argc; ++i) {
+        for (int i = fIgnoreFirst; i < argc; ++i) {
             // オプションは複数起動禁止時に無効->有効にすることができる
             if (argv[i][0] == TEXT('/') || argv[i][0] == TEXT('-')) {
                 if (!::lstrcmpi(argv[i]+1, TEXT("tvtplay"))) m_fForceEnable = m_fIgnoreExt = true;
@@ -187,7 +187,7 @@ void CTvtPlay::AnalyzeCommandLine(LPCWSTR cmdLine)
             }
         }
 
-        if (argc >= 2 && argv[argc-1][0] != TEXT('/') && argv[argc-1][0] != TEXT('-')) {
+        if (argc >= 1 + fIgnoreFirst && argv[argc-1][0] != TEXT('/') && argv[argc-1][0] != TEXT('-')) {
             bool fSpec = m_fIgnoreExt;
             if (!m_fIgnoreExt) {
                 LPCTSTR ext = ::PathFindExtension(argv[argc-1]);
@@ -217,7 +217,7 @@ bool CTvtPlay::Initialize()
     // イベントコールバック関数を登録
     m_pApp->SetEventCallback(EventCallback, this);
 
-    AnalyzeCommandLine(::GetCommandLine());
+    AnalyzeCommandLine(::GetCommandLine(), true);
     if (m_fForceEnable) m_pApp->EnablePlugin(true);
 
     return true;
@@ -1004,7 +1004,7 @@ LRESULT CALLBACK CTvtPlay::EventCallback(UINT Event, LPARAM lParam1, LPARAM lPar
     case TVTest::EVENT_EXECUTE:
         // 複数起動禁止時に複数起動された
         // ドライバ変更前に呼ばれるので、このあとEVENT_DRIVERCHANGEが呼ばれるかもしれない
-        pThis->AnalyzeCommandLine(reinterpret_cast<LPCWSTR>(lParam1));
+        pThis->AnalyzeCommandLine(reinterpret_cast<LPCWSTR>(lParam1), false);
         pThis->m_fEventExecute = true;
         // FALL THROUGH!
     case TVTest::EVENT_STARTUPDONE:

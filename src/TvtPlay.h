@@ -80,7 +80,7 @@ class CTvtPlay : public TVTest::CTVTestPlugin
     };
     std::list<HASH_INFO> m_hashList;
 
-    void AnalyzeCommandLine(LPCWSTR cmdLine);
+    void AnalyzeCommandLine(LPCWSTR cmdLine, bool fIgnoreFirst);
     void LoadSettings();
     void SaveSettings() const;
     bool InitializePlugin();
