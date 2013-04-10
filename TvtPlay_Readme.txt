@@ -1,22 +1,23 @@
-﻿TVTest TvtPlay Plugin ver.0.9r7 + BonDriver_Pipe.dll + TvtAudioStretchFilter.ax
+﻿TVTest TvtPlay Plugin ver.0.9r8 + BonDriver_Pipe.dll + TvtAudioStretchFilter.ax
 
 ■概要
 TVTest付属のBonDriver_UDPまたは専用のBonDriver_Pipeを使ってローカルTSファイルを
 再生するプラグインです。
+ver.1.x系は機能追加のほか、再生時の安定性も向上しています。特にこだわりがなけれ
+ばver.1.6以降を利用することをお勧めします。
 
 ■動作環境
 ・Windows XP以降(ただしVistaは未確認)
 ・TVTest ver.0.7.16 以降、or対応するTVH264
 ・通常版: Visual C++ 2005 SP1 再頒布可能パッケージ(TVTestが起動するなら入ってる)
 ・x64版:  Visual C++ 2010 SP1 再頒布可能パッケージ (x64)
-          # ↑ver.0.9以降、x64版はSP1の方をインストールする必要があるので注意
 
 ■以前のバージョンからの移行
 設定ファイルTvtPlay.iniは基本的にそのまま引き継げます。ただし、ボタンのアイコン
 用画像の配置転換などで、設定キーButton04～Button15のデフォルトが一部変更されてい
 ます。ボタンアイコンがおかしくなった場合は、一度これらのキーをメモ帳などを使って
 削除してみてください。
-(ver.0.9r6からの移行)
+(ver.0.9r6～ver.0.9r7からの移行)
   TvtPlay.tvtpを置きかえてください。
 (ver.0.9r5以前からの移行)
   TvtPlay.tvtpとBonDriver_Pipe.dllとTvtAudioStretchFilter.axとを置きかえてくださ
@@ -44,11 +45,11 @@ TVTest起動オプションの最後に拡張子.ts .m2t .m2ts いずれかの�
 止/再開します。コントロール右側には再生位置および総再生時間が表示されます。
 
 倍速再生を利用する方は音声フィルタの設定が必要です。倍速再生はBonDriver_Pipe.dll
-の使用をお勧めします。同梱のDirectshowフィルタTvtAudioStretchFilter.axを適当なフ
-ォルダに入れ、コマンドプロンプトから管理者権限で regsvr32 {フィルタのパス} と入
-力してください(この辺は「DirectShowフィルタ 登録」あたりでググってください)。無
-事登録されていれば、TVTestの設定->再生->音声フィルタにこのフィルタが現れるので、
-これを選択してください。
+の使用をお勧めします。同梱のDirectShowフィルタTvtAudioStretchFilter.axを適当なフ
+ォルダ(ただし64bit版OSはSystem32以外)に入れ、コマンドプロンプトから管理者権限で
+regsvr32 {フィルタのパス} と入力してください(この辺は「DirectShowフィルタ 登録」
+あたりでググってください)。無事登録されていれば、TVTestの設定->再生->音声フィル
+タにこのフィルタが現れるので、これを選択してください。
 
 *** 以下、必要に応じてお読みください ***
 
@@ -81,13 +82,13 @@ TVTest起動時につぎのようなオプションを追加することで、�
 たりすることはおそらく無いです。
 
 ■TvtAudioStretchFilterの追加機能
+ver.0.9r6以降に添付のフィルタは5.1ch音声に対応しています。S/PDIFパススルーには未
+対応なので注意してください。
 TVTestの音声フィルタを一つしか指定できないことへの対策として、ver.0.9r3以降に添
 付のTvtAudioStretchFilterでは、接続するDirectShowフィルタを1つだけ指定できるよう
 になりました。たとえば、フィルタを置いたフォルダに"TvtAudioStretchFilter.ini"を
 次のような内容で作成すると、ffdshowがインストールされていて、"Uncompressed"形式
 が有効に設定されていれば、フィルタの後続にffdshow Audio Decoderが接続されます。
-ver.0.9r6以降に添付のフィルタは5.1ch音声に対応しています。S/PDIFパススルーには未
-対応なので注意してください。
 
 [TvtAudioStretchFilter]
 AddFilter={0F40E1E5-4F79-4988-B1A9-CC98794E6B55}
@@ -113,7 +114,6 @@ AddFilter={0F40E1E5-4F79-4988-B1A9-CC98794E6B55}
 ・再生時間外の位置へシークしようとすると、一度ファイル先頭に戻る
 ・再生時間ぎりぎりの位置へ一気にシークしようとすると、ファイル先頭に戻る場合があ
   る(概算シーク中に再生時間外の位置へシークしてしまうため)
-ver.0.8r2以降で対応した新機能のため、今後の更新や動作報告に注意してください。
 
 ■設定ファイルについて
 設定ファイル"TvtPlay.ini"は初回使用時プラグインフォルダに自動作成されます。必要
@@ -149,6 +149,12 @@ TsUsePerfCounter【ver.0.9r7～】
     # 基本的に[=1]で良いと思います。
     # 再生に不具合があれば[=0]にしてみてください。ver.0.9r6以前の動作に戻ります
     # 詳細は後述の「設定キーTsUsePerfCounterについて(上級者向け)」を参照。
+RaiseMainThreadPriority【ver.0.9r8～】
+    プラグイン有効かつ起動時にTVTestの主スレッド優先度を少し上げる[=1]かどうか
+    # TVTest起動時に数秒～数十秒間フリーズする現象がみられる場合は試してみてくだ
+    # さい。
+    # この現象については現在調査中です。当方環境ではTVTest設定->カードリーダを
+    # 「なし(スクランブル解除しない)」にすることでも回避できるようです。
 ToBottom
     フルスクリーン時、コントロールの位置を画面のもっとも下に置く[=1]かどうか
 Margin【ver.0.6～】
@@ -296,6 +302,11 @@ http://2sen.dip.jp/)のup0598.zip「非公式 TvtPlayシークボタンカスタ
 その他の部分は勝手に改変・利用してもらって構いません。
 
 ■更新履歴
+ver.0.9r8 (2012-02-18)
+・TVTest起動時まれに数秒～数十秒間フリーズする現象への対策として、設定キー
+  RaiseMainThreadPriorityを追加(ver.1.x系からのバックポート)
+・その他微修正(挙動に変化はないはず)
+・コードが単純で比較テストにちょうどいいのでver.0.9系もしばらく維持
 ver.0.9r7 (2011-12-30)
 ・計時APIをQueryPerformanceCounterに変更し、設定キーTsUsePerfCounterを追加(
   ver.1.x系からのバックポート)

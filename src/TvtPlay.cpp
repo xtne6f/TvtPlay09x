@@ -1,5 +1,5 @@
 ﻿// TVTestにtsファイル再生機能を追加するプラグイン
-// 最終更新: 2011-12-30
+// 最終更新: 2012-02-17
 // 署名: 849fa586809b0d16276cd644c6749503
 #include <Windows.h>
 #include <WindowsX.h>
@@ -8,11 +8,16 @@
 #include "Util.h"
 #include "Settings.h"
 #include "ColorScheme.h"
-#include "TvtPlay.h"
+#include "StatusView.h"
+#include "TsSender.h"
 #include "resource.h"
+#define TVTEST_PLUGIN_CLASS_IMPLEMENT
+#define TVTEST_PLUGIN_VERSION TVTEST_PLUGIN_VERSION_(0,0,13)
+#include "TVTestPlugin.h"
+#include "TvtPlay.h"
 
 static LPCWSTR INFO_PLUGIN_NAME = L"TvtPlay";
-static LPCWSTR INFO_DESCRIPTION = L"ファイル再生機能を追加 (ver.0.9r7)";
+static LPCWSTR INFO_DESCRIPTION = L"ファイル再生機能を追加 (ver.0.9r8)";
 
 #define WM_UPDATE_POSITION  (WM_APP + 1)
 #define WM_UPDATE_TOT_TIME  (WM_APP + 2)
@@ -112,6 +117,7 @@ CTvtPlay::CTvtPlay()
     , m_fAutoEnUdp(false)
     , m_fAutoEnPipe(false)
     , m_fEventExecute(false)
+    , m_fRaisePriority(false)
     , m_hwndFrame(NULL)
     , m_fFullScreen(false)
     , m_fHide(false)
@@ -132,6 +138,7 @@ CTvtPlay::CTvtPlay()
     , m_hThread(NULL)
     , m_hThreadEvent(NULL)
     , m_threadID(0)
+    , m_threadPriority(THREAD_PRIORITY_NORMAL)
     , m_position(0)
     , m_duration(0)
     , m_totTime(-1)
@@ -208,10 +215,9 @@ void CTvtPlay::AnalyzeCommandLine(LPCWSTR cmdLine, bool fIgnoreFirst)
 }
 
 
+// 初期化処理
 bool CTvtPlay::Initialize()
 {
-    // 初期化処理
-
     // コマンドを登録
     m_pApp->RegisterCommand(COMMAND_LIST, ARRAY_SIZE(COMMAND_LIST));
 
@@ -225,9 +231,9 @@ bool CTvtPlay::Initialize()
 }
 
 
+// 終了処理
 bool CTvtPlay::Finalize()
 {
-    // 終了処理
     if (m_pApp->IsPluginEnabled()) EnablePlugin(false);
     return true;
 }
@@ -254,6 +260,7 @@ void CTvtPlay::LoadSettings()
     m_noMuteMin = ::GetPrivateProfileInt(SETTINGS, TEXT("TsStretchNoMuteMin"), 50, m_szIniFileName);
     m_fConvTo188 = ::GetPrivateProfileInt(SETTINGS, TEXT("TsConvTo188"), 1, m_szIniFileName) != 0;
     m_fUseQpc = ::GetPrivateProfileInt(SETTINGS, TEXT("TsUsePerfCounter"), 1, m_szIniFileName) != 0;
+    m_fRaisePriority = ::GetPrivateProfileInt(SETTINGS, TEXT("RaiseMainThreadPriority"), 0, m_szIniFileName) != 0;
     m_fToBottom = ::GetPrivateProfileInt(SETTINGS, TEXT("ToBottom"), 1, m_szIniFileName) != 0;
     m_statusMargin = ::GetPrivateProfileInt(SETTINGS, TEXT("Margin"), defMargin, m_szIniFileName);
     m_fSeekDrawTot = ::GetPrivateProfileInt(SETTINGS, TEXT("DispTot"), 0, m_szIniFileName) != 0;
@@ -392,6 +399,7 @@ void CTvtPlay::SaveSettings() const
     WritePrivateProfileInt(SETTINGS, TEXT("TsStretchNoMuteMin"), m_noMuteMin, m_szIniFileName);
     WritePrivateProfileInt(SETTINGS, TEXT("TsConvTo188"), m_fConvTo188, m_szIniFileName);
     WritePrivateProfileInt(SETTINGS, TEXT("TsUsePerfCounter"), m_fUseQpc, m_szIniFileName);
+    WritePrivateProfileInt(SETTINGS, TEXT("RaiseMainThreadPriority"), m_fRaisePriority, m_szIniFileName);
     WritePrivateProfileInt(SETTINGS, TEXT("ToBottom"), m_fToBottom, m_szIniFileName);
     WritePrivateProfileInt(SETTINGS, TEXT("Margin"), m_statusMargin, m_szIniFileName);
     WritePrivateProfileInt(SETTINGS, TEXT("DispTot"), m_fSeekDrawTot, m_szIniFileName);
@@ -475,7 +483,6 @@ bool CTvtPlay::InitializePlugin()
     HGDIOBJ hgdiOld = ::SelectObject(hdcMem, icon.GetHandle());
 
     RGBQUAD rgbq[2] = {0};
-    rgbq[0].rgbBlue = rgbq[0].rgbGreen = rgbq[0].rgbRed = 0;
     rgbq[1].rgbBlue = rgbq[1].rgbGreen = rgbq[1].rgbRed = 255;
     ::SetDIBColorTable(hdcMem, 0, 2, rgbq);
 
@@ -680,7 +687,7 @@ bool CTvtPlay::Open(LPCTSTR fileName)
     if (m_pApp->GetVersion() < TVTest::MakeVersion(0,7,21))
         m_pApp->Reset(TVTest::RESET_VIEWER);
 
-    m_hThreadEvent = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+    m_hThreadEvent = ::CreateEvent(NULL, TRUE, FALSE, NULL);
     if (!m_hThreadEvent) {
         m_tsSender.Close();
         return false;
@@ -776,6 +783,7 @@ void CTvtPlay::ResetAndPostToSender(UINT Msg, WPARAM wParam, LPARAM lParam, bool
     if (m_hThread) {
         // 転送停止するまで待つ
         m_fHalt = true;
+        ::ResetEvent(m_hThreadEvent);
         ::WaitForSingleObject(m_hThreadEvent, 1000);
 
         if (m_pApp->GetVersion() < TVTest::MakeVersion(0,7,21)) {
@@ -1013,10 +1021,16 @@ LRESULT CALLBACK CTvtPlay::EventCallback(UINT Event, LPARAM lParam1, LPARAM lPar
     case TVTest::EVENT_STARTUPDONE:
         // 起動時の処理が終わった
         pThis->EnablePluginByDriverName();
-        // コマンドラインにパスが指定されていれば開く
-        if (pThis->m_pApp->IsPluginEnabled() && pThis->m_szSpecFileName[0]) {
-            pThis->Open(pThis->m_szSpecFileName);
-            pThis->m_szSpecFileName[0] = 0;
+        if (pThis->m_pApp->IsPluginEnabled()) {
+            // コマンドラインにパスが指定されていれば開く
+            if (pThis->m_szSpecFileName[0]) {
+                pThis->Open(pThis->m_szSpecFileName);
+                pThis->m_szSpecFileName[0] = 0;
+            }
+            // 起動時フリーズ対策(仮)
+            if (pThis->m_fRaisePriority) {
+                ::SetThreadPriority(::GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
+            }
         }
         break;
     }
@@ -1126,8 +1140,21 @@ LRESULT CALLBACK CTvtPlay::FrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, 
             int margin = fFull ? 0 : pThis->m_statusMargin;
 
             // シークバーをリサイズする
-            CStatusItem *pItem = pThis->m_statusView.GetItemByID(STATUS_ITEM_SEEK);
-            if (pItem) pItem->SetWidth(LOWORD(lParam) - 8 - 2 - margin*2 - pThis->m_posItemWidth - 8 - pThis->m_buttonNum * 24);
+            CStatusItem *pItemSeek = pThis->m_statusView.GetItemByID(STATUS_ITEM_SEEK);
+            if (pItemSeek) {
+                // シークバーアイテム以外の幅を算出
+                int cmpl = 0;
+                int num = pThis->m_statusView.NumItems();
+                int idSeek = pItemSeek->GetIndex();
+                RECT rcMgn;
+                pThis->m_statusView.GetItemMargin(&rcMgn);
+                for (int i = 0; i < num; ++i) {
+                    if (i != idSeek) {
+                        cmpl += pThis->m_statusView.GetItem(i)->GetWidth() + rcMgn.left + rcMgn.right;
+                    }
+                }
+                pItemSeek->SetWidth(LOWORD(lParam) - rcMgn.left - rcMgn.right - 2 - margin*2 - cmpl);
+            }
             pThis->m_statusView.SetPosition(margin, 0, LOWORD(lParam) - margin*2,
                                             HIWORD(lParam) - margin + (fFull && pThis->m_fToBottom ? 1 : 0));
         }
@@ -1174,7 +1201,7 @@ LRESULT CALLBACK CTvtPlay::FrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, 
         }
         break;
     case WM_APPCOMMAND:
-        // メディアキー対策(親に渡されないようなので自分で送る)
+        // メディアキー対策(オーナーウィンドウには自分で送る必要がある)
         ::SendMessage(::GetParent(hwnd), uMsg, wParam, lParam);
         return 0;
     }
@@ -1186,7 +1213,7 @@ LRESULT CALLBACK CTvtPlay::FrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, 
 DWORD WINAPI CTvtPlay::TsSenderThread(LPVOID pParam)
 {
     MSG msg;
-    CTvtPlay *pThis = reinterpret_cast<CTvtPlay*>(pParam);
+    CTvtPlay *pThis = static_cast<CTvtPlay*>(pParam);
     int posSec = -1, durSec = -1, totSec = -1;
     bool fPrevFixed = false;
     int resetCount = 5;
@@ -1202,7 +1229,6 @@ DWORD WINAPI CTvtPlay::TsSenderThread(LPVOID pParam)
         ::SetEvent(pThis->m_hThreadEvent);
         if (rv) {
             if (msg.message == WM_QUIT) break;
-
             switch (msg.message) {
             case WM_TS_SET_UDP:
                 if (1234 <= msg.lParam && msg.lParam <= 1243)
@@ -1503,10 +1529,10 @@ void CSeekStatusItem::SetDrawSeekPos(bool fDraw, int pos)
 
 
 CPositionStatusItem::CPositionStatusItem(CTvtPlay *pPlugin, bool fDrawTot, int width)
-    : CStatusItem(STATUS_ITEM_POSITION, width)
+    : CStatusItem(STATUS_ITEM_POSITION, width < 0 ? 112 : width)
     , m_pPlugin(pPlugin)
 {
-    m_MinWidth = width;
+    m_MinWidth = m_DefaultWidth;
     m_fDrawTot = fDrawTot;
 }
 

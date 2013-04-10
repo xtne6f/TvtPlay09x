@@ -1,12 +1,6 @@
 ﻿#ifndef INCLUDE_TVT_PLAY_H
 #define INCLUDE_TVT_PLAY_H
 
-#define TVTEST_PLUGIN_CLASS_IMPLEMENT
-#define TVTEST_PLUGIN_VERSION TVTEST_PLUGIN_VERSION_(0,0,13)
-#include "TVTestPlugin.h"
-#include "StatusView.h"
-#include "TsSender.h"
-
 #define COMMAND_SEEK_MAX        8
 #define COMMAND_STRETCH_MAX     4
 #define BUTTON_MAX              16
@@ -34,6 +28,7 @@ class CTvtPlay : public TVTest::CTVTestPlugin
     bool m_fEventExecute;
     TCHAR m_szIniFileName[MAX_PATH];
     TCHAR m_szSpecFileName[MAX_PATH];
+    bool m_fRaisePriority;
 
     // コントロール
     HWND m_hwndFrame;
