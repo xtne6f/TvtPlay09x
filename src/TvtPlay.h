@@ -50,7 +50,7 @@ class CTvtPlay : public TVTest::CTVTestPlugin
     TCHAR m_szIconFileName[MAX_PATH];
     int m_seekList[COMMAND_SEEK_MAX];
     int m_stretchList[COMMAND_STRETCH_MAX];
-    TCHAR m_buttonList[BUTTON_MAX][64];
+    TCHAR m_buttonList[BUTTON_MAX][128];
     int m_buttonNum;
     int m_popupMax;
     TCHAR m_szPopupPattern[MAX_PATH];

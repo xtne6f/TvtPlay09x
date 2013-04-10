@@ -1,4 +1,4 @@
-﻿TVTest TvtPlay Plugin ver.0.9r3 + BonDriver_Pipe.dll + TvtAudioStretchFilter.ax
+﻿TVTest TvtPlay Plugin ver.0.9r4 + BonDriver_Pipe.dll + TvtAudioStretchFilter.ax
 
 ■概要
 TVTest付属のBonDriver_UDPまたは専用のBonDriver_Pipeを使ってローカルTSファイルを
@@ -10,6 +10,9 @@ TVTest付属のBonDriver_UDPまたは専用のBonDriver_Pipeを使ってロー�
 ・通常版: Visual C++ 2005 SP1 再頒布可能パッケージ(TVTestが起動するなら入ってる)
 ・x64版:  Visual C++ 2010 SP1 再頒布可能パッケージ (x64)
           # ↑ver.0.9以降、x64版はSP1の方をインストールする必要があるので注意
+
+■ver.0.9r3からの移行
+・TvtPlay.tvtpを置きかえてください。
 
 ■ver.0.9、ver.0.9r2からの移行
 ・TvtPlay.tvtpとTvtAudioStretchFilter.axを置きかえてください。
@@ -280,6 +283,11 @@ http://2sen.dip.jp/)のup0598.zip「非公式 TvtPlayシークボタンカスタ
 その他の部分は勝手に改変・利用してもらって構いません。
 
 ■更新履歴
+ver.0.9r4 (2011-11-09)
+・「ファイルを開く」ダイアログ使用後にカレントディレクトリが変更されてしまうのを
+  修正
+・ver.1.x系に合わせて読み取り可能なButton[00-15]の最大文字列長を64→128に変更
+・ver.1.x系に合わせてコンパイルオプション見直しでバイナリサイズ縮小
 ver.0.9r3 (2011-10-20)
 ・TVTest ver.0.7.23でボーダーの配色方法が微妙に変化したので追随
 ・"TVTest.ini"の読み込み部分を0.7.21r2ベースに戻して軽量化+今後のTVH264に対応

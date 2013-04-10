@@ -1,5 +1,5 @@
 ﻿// TVTestにtsファイル再生機能を追加するプラグイン
-// 最終更新: 2011-10-19
+// 最終更新: 2011-11-09
 // 署名: 849fa586809b0d16276cd644c6749503
 #include <Windows.h>
 #include <WindowsX.h>
@@ -12,7 +12,7 @@
 #include "resource.h"
 
 static LPCWSTR INFO_PLUGIN_NAME = L"TvtPlay";
-static LPCWSTR INFO_DESCRIPTION = L"ファイル再生機能を追加 (ver.0.9r3)";
+static LPCWSTR INFO_DESCRIPTION = L"ファイル再生機能を追加 (ver.0.9r4)";
 
 #define WM_UPDATE_POSITION  (WM_APP + 1)
 #define WM_UPDATE_TOT_TIME  (WM_APP + 2)
@@ -178,7 +178,7 @@ void CTvtPlay::AnalyzeCommandLine(LPCWSTR cmdLine)
     int argc;
     LPTSTR *argv = ::CommandLineToArgvW(cmdLine, &argc);
     if (argv) {
-        for (int i = 0; i < argc; i++) {
+        for (int i = 1; i < argc; ++i) {
             // オプションは複数起動禁止時に無効->有効にすることができる
             if (argv[i][0] == TEXT('/') || argv[i][0] == TEXT('-')) {
                 if (!::lstrcmpi(argv[i]+1, TEXT("tvtplay"))) m_fForceEnable = m_fIgnoreExt = true;
@@ -187,7 +187,7 @@ void CTvtPlay::AnalyzeCommandLine(LPCWSTR cmdLine)
             }
         }
 
-        if (argc >= 1 && argv[argc-1][0] != TEXT('/') && argv[argc-1][0] != TEXT('-')) {
+        if (argc >= 2 && argv[argc-1][0] != TEXT('/') && argv[argc-1][0] != TEXT('-')) {
             bool fSpec = m_fIgnoreExt;
             if (!m_fIgnoreExt) {
                 LPCTSTR ext = ::PathFindExtension(argv[argc-1]);
@@ -565,7 +565,8 @@ bool CTvtPlay::Open(HWND hwndOwner)
     ofn.lpstrFile   = fileName;
     ofn.nMaxFile    = ARRAY_SIZE(fileName);
     ofn.lpstrTitle  = TEXT("TSファイルを開く");
-    ofn.Flags       = OFN_HIDEREADONLY | OFN_FILEMUSTEXIST;
+    // MSDN記述と違いOFN_NOCHANGEDIRはGetOpenFileName()にも効果がある模様
+    ofn.Flags       = OFN_HIDEREADONLY | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
     if (!::GetOpenFileName(&ofn)) return false;
     return Open(fileName);
@@ -785,7 +786,7 @@ void CTvtPlay::ResetAndPostToSender(UINT Msg, WPARAM wParam, LPARAM lParam, bool
 
 void CTvtPlay::Pause(bool fPause)
 {
-    ResetAndPostToSender(WM_TS_PAUSE, fPause ? 1 : 0, 0, false);
+    ResetAndPostToSender(WM_TS_PAUSE, fPause, 0, false);
 }
 
 void CTvtPlay::SeekToBegin()
@@ -1145,7 +1146,7 @@ LRESULT CALLBACK CTvtPlay::FrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, 
         pThis->m_statusView.UpdateItem(STATUS_ITEM_SEEK);
         break;
     case WM_UPDATE_F_PAUSED:
-        pThis->m_fPaused = static_cast<int>(wParam) ? true : false;
+        pThis->m_fPaused = wParam != 0;
         pThis->m_statusView.UpdateItem(STATUS_ITEM_SEEK);
         pThis->m_statusView.UpdateItem(STATUS_ITEM_BUTTON + ID_COMMAND_PAUSE);
         break;
@@ -1215,7 +1216,7 @@ DWORD WINAPI CTvtPlay::TsSenderThread(LPVOID pParam)
                 }
                 break;
             case WM_TS_PAUSE:
-                pThis->m_tsSender.Pause(msg.wParam ? true : false);
+                pThis->m_tsSender.Pause(msg.wParam != 0);
                 ::PostMessage(pThis->m_hwndFrame, WM_QUERY_RESET, 0, 0);
                 ::PostMessage(pThis->m_hwndFrame, WM_UPDATE_F_PAUSED, msg.wParam, 0);
                 break;
